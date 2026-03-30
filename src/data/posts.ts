@@ -142,7 +142,7 @@ Prompt engineering is part art, part science.
     },
     publishedAt: '2026-02-28',
     readTime: 9,
-    featured: false,
+    featured: true,
   },
 ];
 
