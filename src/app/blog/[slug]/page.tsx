@@ -5,6 +5,7 @@ import BlogPostClient from './BlogPostClient';
 
 interface Props {
   params: { slug: string };
+  searchParams: { ai?: string };
 }
 
 export function generateStaticParams() {
@@ -13,7 +14,12 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const post = getPostBySlug(params.slug);
-  if (!post) return { title: 'Post Not Found' };
+  if (!post) {
+    return {
+      title: 'AI Generated Blog',
+      description: 'AI-generated content by CodeWander',
+    };
+  }
 
   return {
     title: post.title,
@@ -25,19 +31,28 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: post.excerpt,
       type: 'article',
       publishedTime: post.publishedAt,
-      authors: [post.author.name],
     },
   };
 }
 
-export default function BlogPostPage({ params }: Props) {
+export default function BlogPostPage({ params, searchParams }: Props) {
   const post = getPostBySlug(params.slug);
-  if (!post) notFound();
 
-  // Related posts: same category, excluding current
-  const related = posts
-    .filter(p => p.category === post.category && p.slug !== post.slug)
-    .slice(0, 3);
+  // If post not found but ai=true, client will load from sessionStorage
+  if (!post && searchParams.ai !== 'true') {
+    notFound();
+  }
 
-  return <BlogPostClient post={post} related={related} />;
+  const related = post
+    ? posts.filter(p => p.category === post.category && p.slug !== post.slug).slice(0, 3)
+    : [];
+
+  return (
+    <BlogPostClient
+      post={post ?? null}
+      related={related}
+      isAIGenerated={!post && searchParams.ai === 'true'}
+      slug={params.slug}
+    />
+  );
 }

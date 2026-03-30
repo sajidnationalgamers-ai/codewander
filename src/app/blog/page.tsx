@@ -3,12 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Search, X, SlidersHorizontal } from 'lucide-react';
+import { Search, X, SlidersHorizontal, Sparkles, Loader2 } from 'lucide-react';
 import PostCard from '@/components/PostCard';
 import CategoryBadge from '@/components/CategoryBadge';
 import { PostCardSkeleton } from '@/components/Skeleton';
 import { Post } from '@/types';
 import { CATEGORIES } from '@/lib/utils';
+import { useRouter as useNav } from 'next/navigation';
 
 export default function BlogPage() {
   const searchParams = useSearchParams();
@@ -20,6 +21,7 @@ export default function BlogPage() {
   const [activeCategory, setActiveCategory] = useState(
     searchParams.get('category') ?? 'All'
   );
+  const [generating, setGenerating] = useState(false);
 
   const fetchPosts = useCallback(async (cat: string, q: string) => {
     setLoading(true);
@@ -54,6 +56,29 @@ export default function BlogPage() {
 
   const clearSearch = () => setSearch('');
 
+  // AI generate blog on any topic
+  const handleAIGenerate = async () => {
+    if (!search.trim()) return;
+    setGenerating(true);
+    try {
+      const res = await fetch('/api/generate-blog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: search }),
+      });
+      const blog = await res.json();
+      if (blog.slug) {
+        // Store in sessionStorage and navigate
+        sessionStorage.setItem(`ai-blog-${blog.slug}`, JSON.stringify(blog));
+        router.push(`/blog/${blog.slug}?ai=true`);
+      }
+    } catch {
+      alert('Failed to generate blog. Try again.');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   return (
     <div className="pt-24 pb-16 min-h-screen">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -70,7 +95,7 @@ export default function BlogPage() {
             The Blog
           </h1>
           <p className="text-gray-500 dark:text-gray-400">
-            {posts.length} article{posts.length !== 1 ? 's' : ''} on AI, web development, apps, and security.
+            {posts.length} article{posts.length !== 1 ? 's' : ''} — or ask AI to write about any topic!
           </p>
         </motion.div>
 
@@ -88,7 +113,8 @@ export default function BlogPage() {
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search articles..."
+              onKeyDown={e => e.key === 'Enter' && posts.length === 0 && handleAIGenerate()}
+              placeholder="Search or ask AI any topic..."
               className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700
                 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100
                 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-400
@@ -130,25 +156,66 @@ export default function BlogPage() {
             className="text-center py-20"
           >
             <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
-              <Search className="w-6 h-6 text-gray-400" />
+              <Sparkles className="w-6 h-6 text-brand-500" />
             </div>
-            <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-1">No articles found</h3>
-            <p className="text-sm text-gray-500">
-              Try a different search term or category.
+            <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              No articles found for &quot;{search}&quot;
+            </h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Let AI write a blog about this topic for you!
             </p>
-            <button
-              onClick={() => { clearSearch(); handleCategory('All'); }}
-              className="mt-4 px-4 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors"
-            >
-              Reset filters
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={handleAIGenerate}
+                disabled={generating}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl
+                  bg-brand-500 hover:bg-brand-600 text-white font-medium text-sm
+                  transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {generating
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
+                  : <><Sparkles className="w-4 h-4" /> Generate AI Blog</>
+                }
+              </button>
+              <button
+                onClick={() => { clearSearch(); handleCategory('All'); }}
+                className="px-5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700
+                  text-gray-600 dark:text-gray-300 text-sm font-medium
+                  hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                Reset filters
+              </button>
+            </div>
           </motion.div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {posts.map((post, i) => (
-              <PostCard key={post.slug} post={post} index={i} />
-            ))}
-          </div>
+          <>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {posts.map((post, i) => (
+                <PostCard key={post.slug} post={post} index={i} />
+              ))}
+            </div>
+
+            {/* AI generate button when results exist too */}
+            {search && (
+              <div className="mt-8 text-center">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                  Want a fresh AI-written blog on &quot;{search}&quot;?
+                </p>
+                <button
+                  onClick={handleAIGenerate}
+                  disabled={generating}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl
+                    bg-brand-500 hover:bg-brand-600 text-white font-medium text-sm
+                    transition-all disabled:opacity-50"
+                >
+                  {generating
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
+                    : <><Sparkles className="w-4 h-4" /> Generate AI Blog about this</>
+                  }
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
