@@ -55,6 +55,7 @@ export default function Footer() {
               {[
                 { label: 'Dashboard', href: '/dashboard' },
                 { label: 'About', href: '/about' },
+                
                 { label: 'Newsletter', href: '/newsletter' },
               ].map(item => (
                 <li key={item.href}>
