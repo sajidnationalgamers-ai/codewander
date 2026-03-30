@@ -1,24 +1,39 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { ArrowLeft, Clock, Calendar, Tag, Share2, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Clock, Calendar, Tag, Share2, Copy, Check, Sparkles } from 'lucide-react';
 import { Post } from '@/types';
 import { formatDate, cn, CATEGORY_COLORS } from '@/lib/utils';
 import PostCard from '@/components/PostCard';
-import { useState } from 'react';
 
 interface Props {
-  post: Post;
+  post: Post | null;
   related: Post[];
+  isAIGenerated?: boolean;
+  slug?: string;
 }
 
-export default function BlogPostClient({ post, related }: Props) {
+export default function BlogPostClient({ post: initialPost, related, isAIGenerated, slug }: Props) {
+  const [post, setPost] = useState<Post | null>(initialPost);
   const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(isAIGenerated && !initialPost);
+
+  useEffect(() => {
+    if (isAIGenerated && !initialPost && slug) {
+      // Load AI generated blog from sessionStorage
+      const stored = sessionStorage.getItem(`ai-blog-${slug}`);
+      if (stored) {
+        setPost(JSON.parse(stored));
+      }
+      setLoading(false);
+    }
+  }, [isAIGenerated, initialPost, slug]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -26,9 +41,33 @@ export default function BlogPostClient({ post, related }: Props) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  if (loading) {
+    return (
+      <div className="pt-24 min-h-screen flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <div className="w-2 h-2 rounded-full bg-brand-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+          <div className="w-2 h-2 rounded-full bg-brand-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+          <div className="w-2 h-2 rounded-full bg-brand-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+        </div>
+      </div>
+    );
+  }
+
+  if (!post) {
+    return (
+      <div className="pt-24 min-h-screen flex items-center justify-center text-center px-4">
+        <div>
+          <h1 className="text-2xl font-bold mb-3">Post not found</h1>
+          <Link href="/blog" className="text-brand-500 hover:text-brand-600">← Back to Blog</Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="pt-24 pb-20 min-h-screen">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
+
         {/* Back link */}
         <motion.div
           initial={{ opacity: 0, x: -10 }}
@@ -47,19 +86,27 @@ export default function BlogPostClient({ post, related }: Props) {
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-10">
-          {/* Main content */}
           <article>
-            {/* Post header */}
             <motion.header
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
               className="mb-8"
             >
+              {/* AI Generated Badge */}
+              {isAIGenerated && (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full
+                  bg-brand-50 dark:bg-brand-950/50 border border-brand-200 dark:border-brand-800
+                  text-brand-700 dark:text-brand-300 text-xs font-medium mb-4">
+                  <Sparkles className="w-3 h-3" />
+                  AI Generated Content
+                </div>
+              )}
+
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 <span className={cn(
                   'text-xs font-medium px-2.5 py-1 rounded-full border',
-                  CATEGORY_COLORS[post.category]
+                  CATEGORY_COLORS[post.category] ?? 'bg-gray-100 text-gray-600 border-gray-200'
                 )}>
                   {post.category}
                 </span>
@@ -84,7 +131,6 @@ export default function BlogPostClient({ post, related }: Props) {
                 {post.excerpt}
               </p>
 
-              {/* Author */}
               <div className="flex items-center justify-between flex-wrap gap-4 py-4 border-y border-gray-200 dark:border-gray-800">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm">
@@ -115,87 +161,37 @@ export default function BlogPostClient({ post, related }: Props) {
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
-                  // Syntax highlighted code blocks
                   code(props) {
-                    const { children, className, ...rest } = props;
+                    const { children, className } = props;
                     const match = /language-(\w+)/.exec(className || '');
-                    const isInline = !match;
-
-                    if (isInline) {
+                    if (!match) {
                       return (
-                        <code
-                          className="font-mono text-sm bg-gray-100 dark:bg-gray-800 text-brand-600 dark:text-brand-400 px-1.5 py-0.5 rounded"
-                          {...rest}
-                        >
+                        <code className="font-mono text-sm bg-gray-100 dark:bg-gray-800 text-brand-600 dark:text-brand-400 px-1.5 py-0.5 rounded">
                           {children}
                         </code>
                       );
                     }
-
                     return (
                       <div className="relative group my-6">
-                        <div className="absolute top-3 right-3 z-10">
-                          <CopyCodeButton code={String(children)} />
-                        </div>
                         <SyntaxHighlighter
                           style={oneDark}
                           language={match[1]}
                           PreTag="div"
-                          customStyle={{
-                            borderRadius: '0.75rem',
-                            fontSize: '0.84rem',
-                            margin: 0,
-                            padding: '1.5rem',
-                          }}
+                          customStyle={{ borderRadius: '0.75rem', fontSize: '0.84rem', margin: 0, padding: '1.5rem' }}
                         >
                           {String(children).replace(/\n$/, '')}
                         </SyntaxHighlighter>
                       </div>
                     );
                   },
-                  h2: ({ children }) => (
-                    <h2 className="text-2xl font-bold mt-10 mb-4 text-gray-900 dark:text-gray-100" style={{ fontFamily: 'var(--font-display)' }}>
-                      {children}
-                    </h2>
-                  ),
-                  h3: ({ children }) => (
-                    <h3 className="text-xl font-semibold mt-8 mb-3 text-gray-800 dark:text-gray-200">
-                      {children}
-                    </h3>
-                  ),
-                  p: ({ children }) => (
-                    <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-5 text-[1.05rem]">
-                      {children}
-                    </p>
-                  ),
-                  ul: ({ children }) => (
-                    <ul className="list-disc pl-6 mb-5 text-gray-700 dark:text-gray-300 space-y-1">
-                      {children}
-                    </ul>
-                  ),
-                  ol: ({ children }) => (
-                    <ol className="list-decimal pl-6 mb-5 text-gray-700 dark:text-gray-300 space-y-1">
-                      {children}
-                    </ol>
-                  ),
-                  li: ({ children }) => (
-                    <li className="leading-relaxed">{children}</li>
-                  ),
-                  a: ({ href, children }) => (
-                    <a
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-brand-500 hover:text-brand-600 underline underline-offset-2"
-                    >
-                      {children}
-                    </a>
-                  ),
-                  blockquote: ({ children }) => (
-                    <blockquote className="border-l-4 border-brand-400 pl-4 py-1 my-6 italic text-gray-600 dark:text-gray-400">
-                      {children}
-                    </blockquote>
-                  ),
+                  h2: ({ children }) => <h2 className="text-2xl font-bold mt-10 mb-4 text-gray-900 dark:text-gray-100" style={{ fontFamily: 'var(--font-display)' }}>{children}</h2>,
+                  h3: ({ children }) => <h3 className="text-xl font-semibold mt-8 mb-3 text-gray-800 dark:text-gray-200">{children}</h3>,
+                  p: ({ children }) => <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-5 text-[1.05rem]">{children}</p>,
+                  ul: ({ children }) => <ul className="list-disc pl-6 mb-5 text-gray-700 dark:text-gray-300 space-y-1">{children}</ul>,
+                  ol: ({ children }) => <ol className="list-decimal pl-6 mb-5 text-gray-700 dark:text-gray-300 space-y-1">{children}</ol>,
+                  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                  a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-brand-500 hover:text-brand-600 underline underline-offset-2">{children}</a>,
+                  blockquote: ({ children }) => <blockquote className="border-l-4 border-brand-400 pl-4 py-1 my-6 italic text-gray-600 dark:text-gray-400">{children}</blockquote>,
                 }}
               >
                 {post.content}
@@ -224,24 +220,17 @@ export default function BlogPostClient({ post, related }: Props) {
           {/* Sidebar */}
           <aside className="hidden lg:block">
             <div className="sticky top-24 space-y-6">
-              {/* Table of contents placeholder */}
               <div className="p-5 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">In this article</h3>
                 <div className="space-y-2">
-                  {post.content
-                    .split('\n')
-                    .filter(l => l.startsWith('## '))
-                    .map(l => l.replace('## ', ''))
-                    .map((heading, i) => (
-                      <p key={i} className="text-xs text-gray-500 dark:text-gray-400 hover:text-brand-500 cursor-pointer transition-colors pl-2 border-l-2 border-transparent hover:border-brand-400">
-                        {heading}
-                      </p>
-                    ))
-                  }
+                  {post.content.split('\n').filter(l => l.startsWith('## ')).map(l => l.replace('## ', '')).map((heading, i) => (
+                    <p key={i} className="text-xs text-gray-500 dark:text-gray-400 hover:text-brand-500 cursor-pointer transition-colors pl-2 border-l-2 border-transparent hover:border-brand-400">
+                      {heading}
+                    </p>
+                  ))}
                 </div>
               </div>
 
-              {/* Share */}
               <div className="p-5 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Share this post</h3>
                 <button
@@ -262,9 +251,7 @@ export default function BlogPostClient({ post, related }: Props) {
         {/* Related posts */}
         {related.length > 0 && (
           <section className="mt-16 pt-10 border-t border-gray-200 dark:border-gray-800">
-            <h2 className="text-2xl font-bold mb-6" style={{ fontFamily: 'var(--font-display)' }}>
-              Related articles
-            </h2>
+            <h2 className="text-2xl font-bold mb-6" style={{ fontFamily: 'var(--font-display)' }}>Related articles</h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {related.map((p, i) => (
                 <PostCard key={p.slug} post={p} index={i} />
@@ -274,28 +261,5 @@ export default function BlogPostClient({ post, related }: Props) {
         )}
       </div>
     </div>
-  );
-}
-
-/** Copy button for code blocks */
-function CopyCodeButton({ code }: { code: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <button
-      onClick={handleCopy}
-      className="opacity-0 group-hover:opacity-100 transition-opacity
-        flex items-center gap-1 px-2 py-1 rounded-md text-xs
-        bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white"
-    >
-      {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-      {copied ? 'Copied' : 'Copy'}
-    </button>
   );
 }
