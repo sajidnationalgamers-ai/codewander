@@ -1,11 +1,11 @@
-import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { getPostBySlug, posts } from '@/data/posts';
 import BlogPostClient from './BlogPostClient';
+import { notFound } from 'next/navigation';
 
 interface Props {
   params: { slug: string };
-  searchParams: { ai?: string };
+  searchParams: { [key: string]: string | undefined };
 }
 
 export function generateStaticParams() {
@@ -14,34 +14,18 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const post = getPostBySlug(params.slug);
-  if (!post) {
-    return {
-      title: 'AI Generated Blog',
-      description: 'AI-generated content by CodeWander',
-    };
-  }
-
+  if (!post) return { title: 'Blog Post' };
   return {
     title: post.title,
     description: post.excerpt,
-    keywords: post.tags,
-    authors: [{ name: post.author.name }],
-    openGraph: {
-      title: post.title,
-      description: post.excerpt,
-      type: 'article',
-      publishedTime: post.publishedAt,
-    },
   };
 }
 
 export default function BlogPostPage({ params, searchParams }: Props) {
   const post = getPostBySlug(params.slug);
+  const isAI = searchParams?.ai === 'true';
 
-  // If post not found but ai=true, client will load from sessionStorage
-  if (!post && searchParams.ai !== 'true') {
-    notFound();
-  }
+  if (!post && !isAI) notFound();
 
   const related = post
     ? posts.filter(p => p.category === post.category && p.slug !== post.slug).slice(0, 3)
@@ -51,7 +35,7 @@ export default function BlogPostPage({ params, searchParams }: Props) {
     <BlogPostClient
       post={post ?? null}
       related={related}
-      isAIGenerated={!post && searchParams.ai === 'true'}
+      isAIGenerated={isAI}
       slug={params.slug}
     />
   );
