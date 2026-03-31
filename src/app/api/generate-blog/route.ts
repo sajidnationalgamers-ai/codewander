@@ -25,27 +25,49 @@ export async function POST(req: NextRequest) {
             parts: [{
               text: `Write a detailed tech blog post about: "${topic}"
 
-Return ONLY valid JSON (no markdown, no backticks) in this exact format:
+Return ONLY a raw JSON object. No markdown. No backticks. No explanation. Just the JSON object starting with { and ending with }.
+
 {
   "title": "compelling blog title",
   "excerpt": "2 sentence summary",
   "category": "one of: AI | Web Dev | Apps | Cybersecurity | DevOps",
   "tags": ["tag1", "tag2", "tag3"],
   "readTime": 5,
-  "content": "## Introduction\\n\\nWrite full markdown content here with multiple sections, code examples where relevant, and practical tips. Minimum 600 words."
+  "content": "## Introduction\\n\\nWrite full markdown content here with multiple sections and practical tips. Minimum 600 words."
 }`
             }]
-          }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 2048,
+          }
         }),
       }
     );
 
     const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-    const cleaned = text.replace(/```json|```/g, '').trim();
-    const blog = JSON.parse(cleaned);
+    console.log('Gemini status:', response.status);
 
-    blog.slug = topic.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '-');
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    console.log('Gemini raw response:', text.substring(0, 300));
+
+    // Clean and extract JSON
+    const cleaned = text
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim();
+
+    // Find JSON object in response
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON found in response');
+
+    const blog = JSON.parse(jsonMatch[0]);
+
+    // Add required fields
+    blog.slug = topic
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .replace(/\s+/g, '-');
     blog.author = {
       name: 'CodeWander AI',
       avatar: '',
