@@ -25,7 +25,8 @@ export async function POST(req: NextRequest) {
             parts: [{
               text: `Generate a tech blog post idea about: "${topic}".
 
-Return ONLY valid JSON (no markdown, no backticks) in this exact format:
+Return ONLY a raw JSON object. No markdown. No backticks. No explanation. Just JSON starting with { and ending with }.
+
 {
   "title": "compelling blog post title",
   "category": "one of: AI | Web Dev | Apps | Cybersecurity | DevOps",
@@ -44,11 +45,21 @@ Return ONLY valid JSON (no markdown, no backticks) in this exact format:
       }
     );
 
+    console.log('Gemini status:', response.status);
     const data = await response.json();
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-    const cleaned = text.replace(/```json|```/g, '').trim();
-    const idea = JSON.parse(cleaned);
+    console.log('Gemini raw response:', text.substring(0, 200));
 
+    // Better JSON extraction
+    const cleaned = text
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim();
+
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON found');
+
+    const idea = JSON.parse(jsonMatch[0]);
     return NextResponse.json(idea);
 
   } catch (err) {
