@@ -22,25 +22,33 @@ export default function Navbar() {
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handler);
+    window.addEventListener('scroll', handler, { passive: true });
     return () => window.removeEventListener('scroll', handler);
   }, []);
 
+  const toggleMobileMenu = () => {
+    setMobileOpen(!mobileOpen);
+  };
+
   return (
-    <header className={cn(
-      'fixed top-0 inset-x-0 z-50 transition-all duration-500',
-      scrolled
-        ? 'glass border-b shadow-lg shadow-black/5 dark:shadow-black/20'
-        : 'bg-transparent border-b border-transparent'
-    )}>
-      <nav className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+    <header 
+      className={cn(
+        'fixed top-0 inset-x-0 z-50 transition-all duration-500',
+        scrolled
+          ? 'glass border-b shadow-lg shadow-black/5 dark:shadow-black/20'
+          : 'bg-transparent border-b border-transparent'
+      )}
+      role="banner"
+    >
+      <nav className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between" role="navigation" aria-label="Main navigation">
 
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group">
+        <Link href="/" className="flex items-center gap-2.5 group" aria-label="CodeWander - Home">
           <motion.div
             whileHover={{ rotate: 15, scale: 1.1 }}
             transition={{ type: 'spring', stiffness: 400 }}
             className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-400 to-blue-500 flex items-center justify-center shadow-md shadow-brand-500/25"
+            aria-hidden="true"
           >
             <Zap className="w-4 h-4 text-white" strokeWidth={2.5} />
           </motion.div>
@@ -51,7 +59,7 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop links */}
-        <div className="hidden md:flex items-center gap-1">
+        <div className="hidden md:flex items-center gap-1" role="menubar">
           {navLinks.map(link => (
             <Link
               key={link.href}
@@ -60,6 +68,7 @@ export default function Navbar() {
               onMouseLeave={() => setHoveredLink(null)}
               className="relative px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400
                 hover:text-gray-900 dark:hover:text-gray-100 transition-colors duration-150"
+              role="menuitem"
             >
               {hoveredLink === link.href && (
                 <motion.div
@@ -69,6 +78,7 @@ export default function Navbar() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.15 }}
+                  aria-hidden="true"
                 />
               )}
               <span className="relative z-10">{link.label}</span>
@@ -86,7 +96,8 @@ export default function Navbar() {
             className="p-2 rounded-lg text-gray-500 dark:text-gray-400
               hover:text-gray-900 dark:hover:text-gray-100
               hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            aria-label="Toggle theme"
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
           >
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
@@ -95,6 +106,7 @@ export default function Navbar() {
                 animate={{ rotate: 0, opacity: 1, scale: 1 }}
                 exit={{ rotate: 90, opacity: 0, scale: 0.5 }}
                 transition={{ duration: 0.2 }}
+                aria-hidden="true"
               >
                 {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </motion.div>
@@ -110,7 +122,7 @@ export default function Navbar() {
                 transition-colors duration-150 shadow-md shadow-brand-500/25
                 relative overflow-hidden group"
             >
-              <span className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12" />
+              <span className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12" aria-hidden="true" />
               Read Blog
             </Link>
           </motion.div>
@@ -119,7 +131,9 @@ export default function Navbar() {
           <motion.button
             whileTap={{ scale: 0.9 }}
             className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            onClick={() => setMobileOpen(!mobileOpen)}
+            onClick={toggleMobileMenu}
+            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            title={mobileOpen ? 'Close menu' : 'Open menu'}
           >
             <AnimatePresence mode="wait">
               <motion.div
@@ -128,6 +142,7 @@ export default function Navbar() {
                 animate={{ rotate: 0, opacity: 1 }}
                 exit={{ rotate: 90, opacity: 0 }}
                 transition={{ duration: 0.15 }}
+                aria-hidden="true"
               >
                 {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </motion.div>
@@ -145,6 +160,8 @@ export default function Navbar() {
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.25, ease: 'easeInOut' }}
             className="md:hidden glass border-t"
+            role="navigation"
+            aria-label="Mobile navigation"
           >
             <div className="px-4 py-3 space-y-1">
               {navLinks.map((link, i) => (

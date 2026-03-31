@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,800;1,9..144,400;1,9..144,700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -13,12 +13,20 @@
 @layer base {
   * { @apply border-gray-200 dark:border-gray-800; }
 
-  html { scroll-behavior: smooth; font-family: var(--font-body); }
+  html { 
+    scroll-behavior: smooth; 
+    font-family: var(--font-body);
+    /* Optimize rendering performance */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
   body {
     @apply bg-gray-50 text-gray-900 dark:bg-[#080810] dark:text-gray-100;
     @apply antialiased;
     font-family: var(--font-body);
+    /* Prevent layout shift */
+    scroll-padding-top: 4rem;
   }
 
   h1, h2, h3, h4 { font-family: var(--font-display); }
@@ -90,6 +98,7 @@
   /* Magnetic button effect */
   .btn-magnetic {
     transition: transform 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+    will-change: transform;
   }
   .btn-magnetic:hover { transform: scale(1.04) translateY(-1px); }
   .btn-magnetic:active { transform: scale(0.97); }
@@ -126,6 +135,7 @@
   /* Floating animation */
   .float {
     animation: float 6s ease-in-out infinite;
+    will-change: transform;
   }
   @keyframes float {
     0%, 100% { transform: translateY(0px); }
@@ -182,6 +192,10 @@
     background-image: radial-gradient(rgba(16, 185, 129, 0.15) 1px, transparent 1px);
     background-size: 24px 24px;
   }
+
+  /* Loading optimization classes */
+  .will-animate { will-change: transform, opacity; }
+  .contain-layout { contain: layout style paint; }
 }
 
 /* Prose styles */
@@ -250,3 +264,15 @@
   animation: marquee 20s linear infinite;
 }
 .marquee-track:hover { animation-play-state: paused; }
+
+/* Critical rendering path optimization */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

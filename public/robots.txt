@@ -1,0 +1,39 @@
+# CodeWander robots.txt
+# This file instructs search engines on how to crawl and index the site
+
+User-agent: *
+Allow: /
+Allow: /blog
+Allow: /about
+Disallow: /dashboard
+Disallow: /api
+Disallow: /*.json$
+Disallow: /search
+Disallow: /private
+
+# Specific rules for Google
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+# Specific rules for Bing
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+# Block bad bots
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+# Sitemap location
+Sitemap: https://codewander.vercel.app/sitemap.xml
+Sitemap: https://codewander.dev/sitemap.xml
+
+# Canonical domain preference
+Host: https://codewander.vercel.app
