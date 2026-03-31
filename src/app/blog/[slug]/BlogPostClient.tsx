@@ -9,7 +9,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { ArrowLeft, Clock, Calendar, Tag, Share2, Copy, Check, Sparkles } from 'lucide-react';
 import { Post } from '@/types';
-import { formatDate, cn, CATEGORY_COLORS } from '@/lib/utils';
+import { formatDate, cn, CATEGORY_COLORS } from '@/lib/utils'; 
 import PostCard from '@/components/PostCard';
 
 interface Props {
