@@ -104,7 +104,7 @@ async function generateWithGroq(topic: string) {
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'llama3-70b-8192',
+      model: 'llama-3.3-70b-versatile',
       messages: [{ role: 'user', content: BLOG_PROMPT(topic) }],
       temperature: 0.8,
       max_tokens: 4096,
@@ -130,7 +130,7 @@ async function generateWithCohere(topic: string) {
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'command-r-plus',
+      model: 'command-r-plus-08-2024',
       messages: [{ role: 'user', content: BLOG_PROMPT(topic) }],
       temperature: 0.8,
       max_tokens: 4096,
