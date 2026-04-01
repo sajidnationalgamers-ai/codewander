@@ -36,70 +36,6 @@ Return ONLY a raw JSON object. No markdown. No backticks. No explanation. Just J
   "content": "## Hook Heading\\n\\nEngaging intro paragraph...\\n\\n## Section 1\\n\\nDetailed content...\\n\\n\`\`\`typescript\\n// code\\n\`\`\`\\n\\n## Section 2\\n\\n..."
 }`;
 
-// ─── Gemini Generator ───────────────────────────────────────────────
-async function generateWithGemini(topic: string) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('GEMINI_API_KEY not set');
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: BLOG_PROMPT(topic) }] }],
-        generationConfig: {
-          temperature: 0.8,
-          maxOutputTokens: 4096,
-        },
-      }),
-    }
-  );
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(`Gemini error: ${data?.error?.code} — ${data?.error?.message}`);
-  }
-
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-  return parseJSON(text);
-}
-
-// ─── Anthropic Generator ────────────────────────────────────────────
-async function generateWithAnthropic(topic: string) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set');
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 4096,
-      messages: [
-        {
-          role: 'user',
-          content: BLOG_PROMPT(topic),
-        },
-      ],
-    }),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(`Anthropic error: ${data?.error?.type} — ${data?.error?.message}`);
-  }
-
-  const text = data.content?.[0]?.text ?? '';
-  return parseJSON(text);
-}
-
 // ─── JSON Parser ────────────────────────────────────────────────────
 function parseJSON(text: string) {
   const cleaned = text
@@ -132,6 +68,82 @@ function addMeta(blog: Record<string, unknown>, topic: string, source: string) {
   return blog;
 }
 
+// ─── 1. Gemini ──────────────────────────────────────────────────────
+async function generateWithGemini(topic: string) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('GEMINI_API_KEY not set');
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: BLOG_PROMPT(topic) }] }],
+        generationConfig: { temperature: 0.8, maxOutputTokens: 4096 },
+      }),
+    }
+  );
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(`Gemini error: ${data?.error?.code} — ${data?.error?.message}`);
+
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  return parseJSON(text);
+}
+
+// ─── 2. Groq ────────────────────────────────────────────────────────
+async function generateWithGroq(topic: string) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error('GROQ_API_KEY not set');
+
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'llama3-70b-8192',
+      messages: [{ role: 'user', content: BLOG_PROMPT(topic) }],
+      temperature: 0.8,
+      max_tokens: 4096,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(`Groq error: ${data?.error?.code} — ${data?.error?.message}`);
+
+  const text = data.choices?.[0]?.message?.content ?? '';
+  return parseJSON(text);
+}
+
+// ─── 3. Cohere ──────────────────────────────────────────────────────
+async function generateWithCohere(topic: string) {
+  const apiKey = process.env.COHERE_API_KEY;
+  if (!apiKey) throw new Error('COHERE_API_KEY not set');
+
+  const response = await fetch('https://api.cohere.com/v2/chat', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'command-r-plus',
+      messages: [{ role: 'user', content: BLOG_PROMPT(topic) }],
+      temperature: 0.8,
+      max_tokens: 4096,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(`Cohere error: ${data?.message}`);
+
+  const text = data.message?.content?.[0]?.text ?? '';
+  return parseJSON(text);
+}
+
 // ─── Main Route ─────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
@@ -147,22 +159,32 @@ export async function POST(req: NextRequest) {
       const blog = await generateWithGemini(topic);
       console.log('✅ Gemini succeeded');
       return NextResponse.json(addMeta(blog, topic, 'gemini'));
-    } catch (geminiErr) {
-      console.warn('⚠️ Gemini failed:', geminiErr);
+    } catch (err) {
+      console.warn('⚠️ Gemini failed:', err);
     }
 
-    // 2️⃣ Fallback to Anthropic
+    // 2️⃣ Fallback to Groq
     try {
-      console.log('Trying Anthropic...');
-      const blog = await generateWithAnthropic(topic);
-      console.log('✅ Anthropic succeeded');
-      return NextResponse.json(addMeta(blog, topic, 'anthropic'));
-    } catch (anthropicErr) {
-      console.warn('⚠️ Anthropic failed:', anthropicErr);
+      console.log('Trying Groq...');
+      const blog = await generateWithGroq(topic);
+      console.log('✅ Groq succeeded');
+      return NextResponse.json(addMeta(blog, topic, 'groq'));
+    } catch (err) {
+      console.warn('⚠️ Groq failed:', err);
     }
 
-    // 3️⃣ Both failed
-    console.error('❌ Both APIs failed');
+    // 3️⃣ Fallback to Cohere
+    try {
+      console.log('Trying Cohere...');
+      const blog = await generateWithCohere(topic);
+      console.log('✅ Cohere succeeded');
+      return NextResponse.json(addMeta(blog, topic, 'cohere'));
+    } catch (err) {
+      console.warn('⚠️ Cohere failed:', err);
+    }
+
+    // 4️⃣ All failed
+    console.error('❌ All APIs failed');
     return NextResponse.json(
       { error: 'AI services temporarily unavailable. Please try again later.' },
       { status: 503 }
