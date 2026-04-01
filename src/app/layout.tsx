@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
-import '@/styles/globals.css';
+import '../styles/globals.css';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import PageTransition from '@/components/PageTransition';
 import Script from 'next/script';
 
 export const metadata: Metadata = {
@@ -48,7 +49,9 @@ export default function RootLayout({
         <ThemeProvider>
           <Navbar />
           <main className="flex-1">
-            {children}
+            <PageTransition>
+              {children}
+            </PageTransition>
           </main>
           <Footer />
         </ThemeProvider>

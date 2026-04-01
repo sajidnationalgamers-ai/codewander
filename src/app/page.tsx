@@ -8,6 +8,7 @@ import PostCard from '@/components/PostCard';
 import { PostCardSkeleton } from '@/components/Skeleton';
 import { posts, getFeaturedPosts } from '@/data/posts';
 import AIIdeaGenerator from '@/components/AIIdeaGenerator';
+import ParticleNetwork from '@/components/ParticleNetwork';
 
 // Marquee words
 const MARQUEE_ITEMS = [
@@ -67,6 +68,7 @@ export default function HomePage() {
           <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-blue-500/6 rounded-full blur-[100px]" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-violet-500/4 rounded-full blur-[120px]" />
         </div>
+        <ParticleNetwork />
 
         <motion.div
           style={{ y: heroY, opacity: heroOpacity }}
