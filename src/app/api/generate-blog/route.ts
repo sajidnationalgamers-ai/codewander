@@ -4,36 +4,48 @@ const BLOG_PROMPT = (topic: string) => `You are a senior developer and technical
 
 Write a HIGH-QUALITY, LONG-FORM blog post about: "${topic}"
 
-WRITING RULES (very important):
+WRITING RULES:
 - Write like an experienced developer sharing real knowledge — NOT like an AI
-- Vary sentence lengths — mix short punchy sentences with longer explanations
-- Use natural developer expressions like "Here's the thing...", "In real projects...", "Most beginners make this mistake..."
-- Add opinionated insights — share what actually works in production
+- Vary sentence lengths — mix short punchy sentences with longer explanations  
+- Use natural expressions like "Here's the thing...", "In real projects...", "Most beginners make this mistake..."
+- Add opinionated insights
 - Do NOT use "In conclusion" or generic filler phrases
-- Minimum 1200 words of actual content
+- Minimum 1200 words
 
 STRUCTURE:
-- Engaging intro (1-2 paragraphs, hook the reader — no "In this article we will...")
+- Engaging intro (hook the reader)
 - 5-8 sections with natural headings
-- Each section: 2-4 paragraphs + code where relevant
-- Pro tips or common mistakes section
-- FAQ section (3-4 real questions developers ask)
-- Strong ending (no "Conclusion" heading — end naturally)
+- Pro tips / common mistakes section
+- FAQ section (3-4 questions)
+- Strong natural ending
 
-CODE SNIPPETS:
-- Include 3-5 real, working code examples
-- Use TypeScript where possible
-- Add comments explaining WHY, not just WHAT
+IF TOPIC IS CODING/TECHNICAL:
+- ALWAYS use fenced code blocks with language: \`\`\`python \`\`\`typescript \`\`\`bash
+- Add ASCII diagrams where helpful, like:
+  \`\`\`
+  Request → Middleware → Controller → Database
+  \`\`\`
+- Add callout boxes using blockquotes:
+  > 💡 **Pro Tip:** explanation here
+  > ⚠️ **Warning:** important warning here
+  > 📦 **Install:** npm install package-name
+- Number installation/setup steps clearly
+- NEVER write code as plain text
 
-Return ONLY a raw JSON object. No markdown. No backticks. No explanation. Just JSON starting with { and ending with }.
+IF TOPIC IS NON-TECHNICAL:
+- Rich descriptive paragraphs
+- Use bullet points and numbered lists naturally
+- Add tips and warnings as blockquotes
+
+Return ONLY a raw JSON object. No markdown. No backticks. No explanation.
 
 {
-  "title": "specific, compelling title (not generic)",
-  "excerpt": "2 sentence hook that makes developers want to read",
+  "title": "specific compelling title",
+  "excerpt": "2 sentence hook",
   "category": "one of: AI | Web Dev | Apps | Cybersecurity | DevOps",
   "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
   "readTime": 8,
-  "content": "## Hook Heading\\n\\nEngaging intro paragraph...\\n\\n## Section 1\\n\\nDetailed content...\\n\\n\`\`\`typescript\\n// code\\n\`\`\`\\n\\n## Section 2\\n\\n..."
+  "content": "## Heading\\n\\nContent...\\n\\n\`\`\`typescript\\n// code\\n\`\`\`\\n\\n> 💡 **Pro Tip:** tip here\\n\\n"
 }`;
 
 // ─── JSON Parser ────────────────────────────────────────────────────
