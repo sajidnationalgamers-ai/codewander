@@ -46,11 +46,7 @@ const nextConfig = {
 
   async redirects() {
     return [
-      {
-        source: '/dashboard',
-        destination: '/dashboard?tab=overview',
-        permanent: false,
-      },
+      
     ];
   },
 };
