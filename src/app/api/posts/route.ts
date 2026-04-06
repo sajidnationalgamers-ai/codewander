@@ -1,33 +1,63 @@
+import { connectDB } from '@/lib/mongodb';
 import { NextRequest, NextResponse } from 'next/server';
-import { posts, getPostsByCategory, searchPosts } from '@/data/posts';
+import Post from '@/models/Post';
+
+import { getPostsByCategory, searchPosts } from '@/data/posts';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const category = searchParams.get('category') ?? 'All';
   const query = searchParams.get('q') ?? '';
 
-  let result = query ? searchPosts(query) : getPostsByCategory(category);
+  try {
+    await connectDB();
 
-  return NextResponse.json({
-    posts: result,
-    total: result.length,
-  });
+    // 🔥 TypeScript fix
+    const PostModel = Post as any;
+
+    let mongoPosts: any[] = [];
+
+    if (query) {
+      mongoPosts = await PostModel.find({
+        title: { $regex: query, $options: 'i' },
+      }).lean();
+    } else if (category !== 'All') {
+      mongoPosts = await PostModel.find({
+        category: category,
+      }).lean();
+    } else {
+      mongoPosts = await PostModel.find({}).lean();
+    }
+
+    // 🔥 Local posts
+    const localPosts = query
+      ? searchPosts(query)
+      : getPostsByCategory(category);
+
+    // 🔥 Merge both
+    const allPosts = [...localPosts, ...mongoPosts];
+
+    return NextResponse.json({
+      posts: allPosts,
+      total: allPosts.length,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to fetch posts' },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(req: NextRequest) {
   try {
+    await connectDB();
+
+    const PostModel = Post as any;
+
     const body = await req.json();
 
-    // Validate required fields
-    const required = ['title', 'excerpt', 'content', 'category'];
-    for (const field of required) {
-      if (!body[field]) {
-        return NextResponse.json({ error: `Missing field: ${field}` }, { status: 400 });
-      }
-    }
-
-    // In a real app this would write to MongoDB
-    const newPost = {
+    const newPost = await PostModel.create({
       slug: body.title
         .toLowerCase()
         .replace(/[^a-z0-9\s]/g, '')
@@ -43,12 +73,21 @@ export async function POST(req: NextRequest) {
         bio: '',
       },
       publishedAt: new Date().toISOString().split('T')[0],
-      readTime: Math.max(1, Math.ceil(body.content.split(' ').length / 200)),
+      readTime: Math.max(
+        1,
+        Math.ceil(body.content.split(' ').length / 200)
+      ),
       featured: body.featured ?? false,
-    };
+    });
 
-    return NextResponse.json({ success: true, post: newPost }, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    return NextResponse.json(
+      { success: true, post: newPost },
+      { status: 201 }
+    );
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to create post' },
+      { status: 500 }
+    );
   }
-}
+} 
